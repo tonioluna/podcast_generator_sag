@@ -35,13 +35,13 @@ _header_items = dict ( temporada              =  "Temporada"             ,
 # Items which should be non-None
 _required_header_items = ("temporada",
                           "programa_num_global",
-                          "programa_num_temporada",
                           "fecha",
                           "tema",
                           "archivo_audio",
                           )
 
-_style_header = "font-size:16pt;font-weight:bold;"
+_style_season = "font-size:18pt;font-weight:bold;color:#22B;"
+_style_header = "font-size:15pt;font-weight:bold;"
 _style_body = "font-family:Lucida Grande,Lucida Sans Unicode,Verdana,sans-serif; font-size:11pt; line-height: 180%;"
 _style_date = "font-size:10pt;color:#22B;"
 #_style_item_type = "text-decoration: underline;"
@@ -143,7 +143,9 @@ def read_csv(input):
 
         max_req_col = max(header.values())
 
-        data = []
+        data = types.SimpleNamespace()
+        data.seasons = []
+        data.programs = {}
 
         stop_read = False
         # Read the data
@@ -168,9 +170,14 @@ def read_csv(input):
                         ""%(repr(_header_items[hdr_key]), row_num)
                     v = None
                 setattr(d, hdr_key, v)
-            data.append(d)
+            
+            if d.temporada not in data.seasons:
+                data.seasons.append(d.temporada)
+                
+            assert d.programa_num_global not in data.programs, "Duplicated program with number %s at row %i"%(d.programa_num_global, row_num)
+            data.programs[d.programa_num_global] = d
 
-        _log.info("Read %i podcast entries"%(len(data)))
+        _log.info("Read %i podcast entries"%(len(data.programs)))
         return data
 
 
@@ -179,89 +186,122 @@ def write_html(data, filename = None):
         filename = _default_html
 
     _log.info("Writting results to %s"%(filename, ))
-    _log.debug(pprint.pformat(data))
     kwargs={}
     kwargs['encoding']='utf-8'
     with open(filename, "w", **kwargs) as fh:
-        fh.write('</span style="font-family:Georgia,"Times New Roman",Times,serif;">')
-        fh.write('<p>En esta página podrás encontrar los programas de radio de <a href="/actividades/radio">Una Ventana al Universo</a>&nbsp;transmitidos en Jalisco Radio.</p>')
-        fh.write("Ultima actualizaci&oacute;n: %s<br /><br />\n"%(time.strftime("%d/%m/%Y %H:%M:%S")))
-
-        for entry in data:
-            fh.write('<p>')
+        fh.write('<span style="font-family:Georgia,"Times New Roman",Times,serif;">')
+        fh.write('<p>En esta página podrás encontrar grabaciones de ediciones anteriores de <a href="/actividades/radio">Una Ventana al Universo</a>&nbsp;transmitidas en Jalisco Radio.</p>')
+        
+        seasons = []
+        seasons.extend(data.seasons)
+        seasons.sort(reverse=True)
+        
+        programs = list(data.programs.keys())
+        programs.sort(reverse = True)
+        
+        # 
+        fh.write('<p><h1 id="top"><span style="%s">Índice</span></h1>\n'%(_style_season,))
+        fh.write('<ul>\n')
             
-            # Program number
-            fh.write('<hr>')
-            fh.write('<span style="%s">Programa %s</span><br/>'%(_style_header, entry.programa_num_global,))
+        for season in seasons:
+            fh.write('<li><span style="%s">Temporada %s</span>\n'%(_style_item_title, season))
+            fh.write('<ul>\n')
+            for num in programs:
+                entry = data.programs[num]
+                if entry.temporada != season: 
+                    continue
+                fh.write('<li><a href="#programa_%s">Programa %s, %s</a></li>\n'%(entry.programa_num_global, entry.programa_num_global, entry.fecha))
+            fh.write('</ul>\n')
+        fh.write('</ul>\n')
+        fh.write('</p>\n')
             
-            # Body style
-            fh.write('<span style="%s">'%(_style_body))
+        for season in seasons:
+        
+            fh.write('<h1><span style="%s">Temporada %s</span></h1>\n'%(_style_season, season,))
             
-            # Season and date
-            fh.write('<span style="%s">Programa #%s de la Temporada #%s, emitido el %s</span><br/>'
-                     ''%(_style_date, entry.programa_num_temporada, entry.temporada, entry.fecha,))
-            
-            # Topic and description
-            fh.write('<span style="%s">Tema</span>: <span style="%s">%s</span>'
-                ''%(_style_item_type, _style_item_title, entry.tema))
-            if entry.tema_descripcion is not None:
-                fh.write(', %s.'%(entry.tema_descripcion))
-            fh.write('<br/>')
-            
-            # Suggested item
-            if entry.recomendacion_titulo is not None:
-                fh.write('<span style="%s">Recomendación</span>: <span style="%s">'
-                    ''%(_style_item_type, _style_item_title))
-                if entry.recomendacion_link is not None:
-                    fh.write('<a href="%s" target="_BLANK">'%(entry.recomendacion_link))
-                fh.write('%s'%(entry.recomendacion_titulo))
-                if entry.recomendacion_link is not None:
-                    fh.write('</a>')
-                fh.write('</span>')
-                if entry.recomendacion_tipo is not None:
-                    fh.write(' (%s)'%(entry.recomendacion_tipo))
-                if entry.recomendacion_mas_info is not None:
-                    fh.write('. %s.'%(entry.recomendacion_mas_info))
-                fh.write('<br/>')
+            for num in programs:
+                entry = data.programs[num]
+                if entry.temporada != season: 
+                    continue
                 
-            # Music
-            if entry.musica_titulo is not None:
-                fh.write('<span style="%s">Música</span>: <span style="%s">'
-                    ''%(_style_item_type, _style_item_title))
-                if entry.musica_link is not None:
-                    fh.write('<a href="%s" target="_BLANK">'%(entry.musica_link))
-                fh.write('%s'%(entry.musica_titulo))
-                if entry.musica_link is not None:
-                    fh.write('</a>')
-                fh.write('</span>')
-                if entry.musica_autor is not None:
-                    fh.write(', compuesta por %s'%(entry.musica_autor))
-                if entry.musica_mas_info is not None:
-                    fh.write(', %s'%(entry.musica_mas_info))
-                fh.write('<br/>')
+                fh.write('<p>\n')
+                
+                # Program number
+                fh.write('<hr id="programa_%s"/>\n'%(entry.programa_num_global,))
+                fh.write('<span style="%s">Programa %s</span><br/>\n'%(_style_header, entry.programa_num_global,))
+                
+                # Body style
+                fh.write('<span style="%s">\n'%(_style_body))
+                
+                # Season and date
+                if entry.programa_num_temporada is not None:
+                    fh.write('<span style="%s">Programa #%s de la Temporada #%s, emitido el %s</span><br/>\n'
+                             ''%(_style_date, entry.programa_num_temporada, entry.temporada, entry.fecha,))
+                else:
+                    fh.write('<span style="%s">Programa de la Temporada #%s, emitido el %s</span><br/>\n'
+                             ''%(_style_date, entry.temporada, entry.fecha,))
+                
+                # Topic and description
+                fh.write('<span style="%s">Tema</span>: <span style="%s">%s</span>\n'
+                    ''%(_style_item_type, _style_item_title, entry.tema))
+                if entry.tema_descripcion is not None:
+                    fh.write(', %s.'%(entry.tema_descripcion))
+                fh.write('<br/>\n')
+                
+                # Suggested item
+                if entry.recomendacion_titulo is not None:
+                    fh.write('<span style="%s">Recomendación</span>: <span style="%s">\n'
+                        ''%(_style_item_type, _style_item_title))
+                    if entry.recomendacion_link is not None:
+                        fh.write('<a href="%s" target="_BLANK">'%(entry.recomendacion_link))
+                    fh.write('%s'%(entry.recomendacion_titulo))
+                    if entry.recomendacion_link is not None:
+                        fh.write('</a>')
+                    fh.write('</span>')
+                    if entry.recomendacion_tipo is not None:
+                        fh.write(' (%s)'%(entry.recomendacion_tipo))
+                    if entry.recomendacion_mas_info is not None:
+                        fh.write('. %s.'%(entry.recomendacion_mas_info))
+                    fh.write('<br/>\n')
+                    
+                # Music
+                if entry.musica_titulo is not None:
+                    fh.write('<span style="%s">Música</span>: <span style="%s">'
+                        ''%(_style_item_type, _style_item_title))
+                    if entry.musica_link is not None:
+                        fh.write('<a href="%s" target="_BLANK">'%(entry.musica_link))
+                    fh.write('%s'%(entry.musica_titulo))
+                    if entry.musica_link is not None:
+                        fh.write('</a>')
+                    fh.write('</span>')
+                    if entry.musica_autor is not None:
+                        fh.write(', compuesta por %s'%(entry.musica_autor))
+                    if entry.musica_mas_info is not None:
+                        fh.write(', %s'%(entry.musica_mas_info))
+                    fh.write('<br/>\n')
 
-            # Audio!
-            audio_url = _audio_url_base + entry.archivo_audio
-            if not url_exists(audio_url):
-                raise Exception("Audio file does not exist for program %s: %s"
-                    ""%(entry.programa_num_global, audio_url))
-            
-            fh.write('<audio controls="" style="width: -webkit-fill-available;"><source src="%s" type="audio/mpeg" /></audio>'
-                ''%(audio_url,))
+                # Audio!
+                audio_url = _audio_url_base + entry.archivo_audio
+                if not url_exists(audio_url):
+                    raise Exception("Audio file does not exist for program %s: %s"
+                        ""%(entry.programa_num_global, audio_url))
+                
+                fh.write('<audio controls="" style="width: -webkit-fill-available;"><source src="%s" type="audio/mpeg" /></audio>\n'
+                    ''%(audio_url,))
 
-            fh.write('<span style="%s"><a href="%s" download="podcast_sag_programa_%s.mp3">'
-                'Descarga el podcast en formato mp3</a></span>'
-                ''%(_style_download_link, audio_url, entry.programa_num_global))
-            
-            
-            # Overall span for font style
-            fh.write('</span>')
-            fh.write('</p>')
-            
+                fh.write('<span style="%s"><a href="%s" download="podcast_sag_programa_%s.mp3">'
+                    'Descarga el podcast en formato mp3</a><br/><a href="#top">Regresar al Índice</a></span>\n'
+                    ''%(_style_download_link, audio_url, entry.programa_num_global))
+                
+                # Overall span for font style
+                fh.write('</span>\n')
+                fh.write('</p><br/>\n')
+                
             
 
+        fh.write("<br/><br/>Última actualizaci&oacute;n de esta página: %s<br /><br />\n\n"%(time.strftime("%d/%m/%Y %H:%M:%S")))
 
-        fh.write("</span>")
+        fh.write("</span>\n")
 
 def escape_html(txt):
     if not py3:
