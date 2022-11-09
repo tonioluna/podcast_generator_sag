@@ -15,21 +15,22 @@ from xml.sax.saxutils import escape
 
 _default_html = "podcast.html"
 
-_header_items = dict ( temporada              =  "Temporada"             ,
-                       programa_num_global    =  "Num Programa Global"   ,
-                       programa_num_temporada =  "Num Programa Temporada"   ,
-                       fecha                  =  "Fecha"                 ,
-                       tema                   =  "Tema"                  ,
-                       tema_descripcion       =  "Tema Descripcion",
-                       recomendacion_tipo     =  "Recomendacion Tipo"    ,
-                       recomendacion_titulo   =  "Recomendacion Titulo"  ,
+_header_items = dict ( temporada              =  "Temporada"               ,
+                       programa_num_global    =  "Num Programa Global"     ,
+                       programa_num_temporada =  "Num Programa Temporada"  ,
+                       fecha                  =  "Fecha"                   ,
+                       tema                   =  "Tema"                    ,
+                       tema_descripcion       =  "Tema Descripcion"        ,
+                       recomendacion_tipo     =  "Recomendacion Tipo"      ,
+                       recomendacion_titulo   =  "Recomendacion Titulo"    ,
                        recomendacion_mas_info =  "Recomendacion Mas Info"  ,
-                       recomendacion_link     =  "Recomendacion Link"    ,
-                       musica_titulo          =  "Musica Titulo"         ,
-                       musica_autor           =  "Musica Autor"         ,
-                       musica_mas_info        =  "Musica Mas Info"      ,
-                       musica_link            =  "Musica Link"          ,
-                       archivo_audio          =  "Archivo Audio" ,
+                       recomendacion_link     =  "Recomendacion Link"      ,
+                       musica_titulo          =  "Musica Titulo"           ,
+                       musica_autor           =  "Musica Autor"            ,
+                       musica_mas_info        =  "Musica Mas Info"         ,
+                       musica_link            =  "Musica Link"             ,
+                       archivo_audio          =  "Archivo Audio"           ,
+                       advertencia            =  "Advertencia"             ,
                     )
 
 # Items which should be non-None
@@ -44,12 +45,13 @@ _style_season = "font-size:18pt;font-weight:bold;color:#22B;"
 _style_header = "font-size:15pt;font-weight:bold;"
 _style_body = "font-family:Lucida Grande,Lucida Sans Unicode,Verdana,sans-serif; font-size:11pt; line-height: 180%;"
 _style_date = "font-size:10pt;color:#22B;"
+_style_warning = "font-size:10pt;font-weight:bold;color:#D60;"
 #_style_item_type = "text-decoration: underline;"
 _style_item_type = _style_date
 _style_item_title = "font-weight:bold;"
 _style_download_link = _style_date
 
-_audio_url_base = "http://www.sagdl.org/sites/default/files/"
+_audio_url_base = "http://www.sagdl.org/sites/default/files/unaventanaaluniverso/"
 
 ###############################################
 ### Custom Colors
@@ -149,12 +151,15 @@ def read_csv(input):
 
         stop_read = False
         # Read the data
-        row_num = 0
+        row_num = 1
         for row in reader:
             row = list(row)
             row_num += 1
             row_text = ("".join(row)).replace(" ","")
             if row_text == "": continue
+            if "#SKIPROW" in row_text:
+                _log.warning("Skipping row %i"%(row_num,))
+                continue
             
             # Pad required columns. If some cells are empty not all columns will be added
             while len(row) <= max_req_col:
@@ -189,7 +194,8 @@ def write_html(data, filename = None):
     kwargs={}
     kwargs['encoding']='utf-8'
     with open(filename, "w", **kwargs) as fh:
-        fh.write('<span style="font-family:Georgia,"Times New Roman",Times,serif;">')
+        # Body style
+        fh.write('<span style="%s">\n'%(_style_body))
         fh.write('<p>En esta página podrás encontrar grabaciones de ediciones anteriores de <a href="/actividades/radio">Una Ventana al Universo</a>&nbsp;transmitidas en Jalisco Radio.</p>')
         
         seasons = []
@@ -199,8 +205,8 @@ def write_html(data, filename = None):
         programs = list(data.programs.keys())
         programs.sort(reverse = True)
         
-        # 
-        fh.write('<p><h1 id="top"><span style="%s">Índice</span></h1>\n'%(_style_season,))
+        
+        fh.write('<p><h1 id="indice"><span style="%s">Índice</span></h1>\n'%(_style_season,))
         fh.write('<ul>\n')
             
         for season in seasons:
@@ -230,9 +236,6 @@ def write_html(data, filename = None):
                 fh.write('<hr id="programa_%s"/>\n'%(entry.programa_num_global,))
                 fh.write('<span style="%s">Programa %s</span><br/>\n'%(_style_header, entry.programa_num_global,))
                 
-                # Body style
-                fh.write('<span style="%s">\n'%(_style_body))
-                
                 # Season and date
                 if entry.programa_num_temporada is not None:
                     fh.write('<span style="%s">Programa #%s de la Temporada #%s, emitido el %s</span><br/>\n'
@@ -240,6 +243,10 @@ def write_html(data, filename = None):
                 else:
                     fh.write('<span style="%s">Programa de la Temporada #%s, emitido el %s</span><br/>\n'
                              ''%(_style_date, entry.temporada, entry.fecha,))
+                
+                if entry.advertencia is not None:
+                    fh.write('<span style="%s">%s</span><br/>\n'
+                             ''%(_style_warning, entry.advertencia,))
                 
                 # Topic and description
                 fh.write('<span style="%s">Tema</span>: <span style="%s">%s</span>\n'
@@ -275,7 +282,7 @@ def write_html(data, filename = None):
                         fh.write('</a>')
                     fh.write('</span>')
                     if entry.musica_autor is not None:
-                        fh.write(', compuesta por %s'%(entry.musica_autor))
+                        fh.write(', compuesta y/o interpretada por %s'%(entry.musica_autor))
                     if entry.musica_mas_info is not None:
                         fh.write(', %s'%(entry.musica_mas_info))
                     fh.write('<br/>\n')
@@ -290,16 +297,18 @@ def write_html(data, filename = None):
                     ''%(audio_url,))
 
                 fh.write('<span style="%s"><a href="%s" download="podcast_sag_programa_%s.mp3">'
-                    'Descarga el podcast en formato mp3</a><br/><a href="#top">Regresar al Índice</a></span>\n'
+                    'Descarga el podcast en formato mp3</a><br/><a href="#indice">Regresar al Índice</a></span>\n'
                     ''%(_style_download_link, audio_url, entry.programa_num_global))
                 
-                # Overall span for font style
-                fh.write('</span>\n')
                 fh.write('</p><br/>\n')
                 
             
 
         fh.write("<br/><br/>Última actualizaci&oacute;n de esta página: %s<br /><br />\n\n"%(time.strftime("%d/%m/%Y %H:%M:%S")))
+
+        # Overall span for font style
+        fh.write('</span>\n')
+        
 
         fh.write("</span>\n")
 
