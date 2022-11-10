@@ -26,11 +26,14 @@ _header_items = dict ( temporada              =  "Temporada"               ,
                        recomendacion_mas_info =  "Recomendacion Mas Info"  ,
                        recomendacion_link     =  "Recomendacion Link"      ,
                        musica_titulo          =  "Musica Titulo"           ,
-                       musica_autor           =  "Musica Autor"            ,
+                       musica_compositor      =  "Musica Compositor"       ,
+                       musica_interprete      =  "Musica Interprete"       ,
+                       musica_origen          =  "Musica Origen"           ,
                        musica_mas_info        =  "Musica Mas Info"         ,
                        musica_link            =  "Musica Link"             ,
                        archivo_audio          =  "Archivo Audio"           ,
                        advertencia            =  "Advertencia"             ,
+                       fe_de_erratas          =  "Fe de Erratas"           ,
                     )
 
 # Items which should be non-None
@@ -44,30 +47,15 @@ _required_header_items = ("temporada",
 _style_season = "font-size:18pt;font-weight:bold;color:#22B;"
 _style_header = "font-size:15pt;font-weight:bold;"
 _style_body = "font-family:Lucida Grande,Lucida Sans Unicode,Verdana,sans-serif; font-size:11pt; line-height: 180%;"
-_style_date = "font-size:10pt;color:#22B;"
-_style_warning = "font-size:10pt;font-weight:bold;color:#D60;"
+_style_date = "font-size:11pt;color:#22B;"
+_style_warning = "font-size:11pt;font-weight:bold;color:#D60;"
+_style_errata = "color:#909;font-weight:bold;"
 #_style_item_type = "text-decoration: underline;"
 _style_item_type = _style_date
 _style_item_title = "font-weight:bold;"
 _style_download_link = _style_date
 
 _audio_url_base = "http://www.sagdl.org/sites/default/files/unaventanaaluniverso/"
-
-###############################################
-### Custom Colors
-###############################################
-
-## Event types
-#_event_type_color_codes = {_event_type_weekly_session    : 0x8dd29f,
-#                           _event_type_lunaria_workshop  : 0xe6b37e,
-#                           _event_type_lunaria_talk      : 0xefdac4,
-#                           _event_type_radio_jalisco     : 0xf7dae7,
-#                           _event_type_radio_maria       : 0xd1a1b7,
-#                           _event_type_camping           : 0x6fa8dc,
-#                           _event_type_expedition        : 0x4fd1cb,
-#                           _event_type_NdE               : 0xd7e9fa,
-#                           }
-#
 
 def startLog():
     filename = os.path.splitext(os.path.basename(__file__))[0] + ".log"
@@ -244,10 +232,6 @@ def write_html(data, filename = None):
                     fh.write('<span style="%s">Programa de la Temporada #%s, emitido el %s</span><br/>\n'
                              ''%(_style_date, entry.temporada, entry.fecha,))
                 
-                if entry.advertencia is not None:
-                    fh.write('<span style="%s">%s</span><br/>\n'
-                             ''%(_style_warning, entry.advertencia,))
-                
                 # Topic and description
                 fh.write('<span style="%s">Tema</span>: <span style="%s">%s</span>\n'
                     ''%(_style_item_type, _style_item_title, entry.tema))
@@ -281,12 +265,24 @@ def write_html(data, filename = None):
                     if entry.musica_link is not None:
                         fh.write('</a>')
                     fh.write('</span>')
-                    if entry.musica_autor is not None:
-                        fh.write(', compuesta y/o interpretada por %s'%(entry.musica_autor))
+                    if entry.musica_compositor is not None:
+                        fh.write(', compuesta por %s'%(entry.musica_compositor))
+                    if entry.musica_interprete is not None:
+                        fh.write(', interpretada por %s'%(entry.musica_interprete))
+                    if entry.musica_origen is not None:
+                        fh.write(', obtenida de %s'%(entry.musica_origen))
                     if entry.musica_mas_info is not None:
-                        fh.write(', %s'%(entry.musica_mas_info))
-                    fh.write('<br/>\n')
+                        fh.write('. %s'%(entry.musica_mas_info))
+                    fh.write('.<br/>\n')
 
+                if entry.fe_de_erratas is not None:
+                    fh.write('<span style="%s">Fe de Erratas: </span><span style="%s">%s</span><br/>\n'
+                             ''%(_style_item_type, _style_errata, entry.fe_de_erratas,))
+                
+                if entry.advertencia is not None:
+                    fh.write('<span style="%s">&#128681; %s &#128681;</span><br/>\n'
+                             ''%(_style_warning, entry.advertencia,))
+                
                 # Audio!
                 audio_url = _audio_url_base + entry.archivo_audio
                 if not url_exists(audio_url):
