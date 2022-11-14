@@ -292,7 +292,7 @@ def write_html(data, filename = None):
                 fh.write('<audio controls="" style="width: -webkit-fill-available;"><source src="%s" type="audio/mpeg" /></audio>\n'
                     ''%(audio_url,))
 
-                fh.write('<span style="%s"><a href="%s" download="podcast_sag_programa_%s.mp3">'
+                fh.write('<span style="%s"><a href="%s" download="podcast.una_ventana_al_universo.programa_%s.mp3">'
                     'Descarga el podcast en formato mp3</a><br/><a href="#indice">Regresar al Índice</a></span>\n'
                     ''%(_style_download_link, audio_url, entry.programa_num_global))
                 
