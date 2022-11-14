@@ -300,7 +300,7 @@ def write_html(data, filename = None):
                 
             
 
-        fh.write("<br/><br/>Última actualizaci&oacute;n de esta página: %s<br /><br />\n\n"%(time.strftime("%d/%m/%Y %H:%M:%S")))
+        fh.write('<br/><br/>Página actualizara por última vez el %s usando un <a href="https://github.com/tonioluna/podcast_generator_sag" target="_BLANK">método terrible</a>.<br /><br />\n\n'%(time.strftime("%d/%m/%Y %H:%M:%S")))
 
         # Overall span for font style
         fh.write('</span>\n')
